@@ -31,7 +31,10 @@ local function IsGreen(r, g, b)
     return r and r < 0.25 and g > 0.9 and b < 0.25
 end
 
--- Returns a list of { text, red, green, rightText, rightRed } or nil when not available yet.
+-- Tooltip line type the client gives to enchant lines, when it exposes one.
+local ENCHANT_LINE = Enum and Enum.TooltipDataLineType and Enum.TooltipDataLineType.ItemEnchantmentPermanent
+
+-- Returns a list of { text, red, green, enchant, rightText, rightRed } or nil when not available yet.
 local function ReadLines(link)
     local lines = {}
     if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
@@ -48,6 +51,7 @@ local function ReadLines(link)
             end
             local lc, rc = line.leftColor, line.rightColor
             table.insert(lines, {
+                enchant = ENCHANT_LINE ~= nil and line.type == ENCHANT_LINE,
                 text = line.leftText or "",
                 red = lc and IsRed(lc.r, lc.g, lc.b) or false,
                 green = lc and IsGreen(lc.r, lc.g, lc.b) or false,
@@ -137,6 +141,20 @@ local EQUIP = {
     { "^increases your casting speed by " .. N .. "%%%.?$", { "spellhaste" } },
 }
 
+-- Green "+N Stat" lines that are part of the item itself. Forever prints these bonus stats
+-- in green; green primary stats (strength, stamina...) are enchants and are not listed here.
+local GREEN = {
+    { "^%+" .. N .. " spell power$", { "heal", "spdmg" } },
+    { "^%+" .. N .. " healing power$", { "heal" } },
+    { "^%+" .. N .. " spell damage$", { "spdmg" } },
+    { "^%+" .. N .. " ranged attack power$", { "rap" } },
+    { "^%+" .. N .. " attack power$", { "ap" } },
+    { "^%+" .. N .. " defense$", { "defense" } },
+    { "^%+" .. N .. " block value$", { "blockvalue" } },
+    { "^%+" .. N .. " mana per 5 sec%.?$", { "mp5" } },
+    { "^%+" .. N .. " health per 5 sec%.?$", { "hp5" } },
+}
+
 local function Add(stats, stat, value)
     stats[stat] = (stats[stat] or 0) + value
 end
@@ -146,6 +164,19 @@ local function ParseLine(text, stats)
         local value = text:match(entry[1])
         if value then
             Add(stats, entry[2], tonumber(value))
+            return true
+        end
+    end
+    return false
+end
+
+local function ParseGreen(text, stats)
+    for _, entry in ipairs(GREEN) do
+        local value = tonumber((text:match(entry[1])))
+        if value then
+            for _, stat in ipairs(entry[2]) do
+                Add(stats, stat, value)
+            end
             return true
         end
     end
@@ -247,10 +278,12 @@ function BG:GetItem(link)
         -- Red text = the character cannot use this (class, proficiency, profession...).
         -- Level and durability are handled separately.
         if index > 1 and not lower:find("^requires level") and not lower:find("^durability") then
-            if line.red then
+            if line.rightRed then
+                -- Weapon or armor type the character is not proficient with. The slot name
+                -- on the left ("Two-Hand") turns red with it, so check this side first.
+                typeRed = true
+            elseif line.red then
                 hardRed = true      -- class restriction, profession, reputation...
-            elseif line.rightRed then
-                typeRed = true      -- weapon or armor type the character is not proficient with
             end
         end
 
@@ -267,9 +300,13 @@ function BG:GetItem(link)
             end
         elseif lower:find("^set: ") or lower:find("^use: ") or lower:find("^chance on hit: ") or lower:find("^%(%d+%) set") then
             -- not scored
+        elseif line.enchant then
+            -- Enchants are skipped so an enchanted equipped item is compared fairly
+            -- against an unenchanted drop.
         elseif line.green and lower:find("^%+") then
-            -- Enchants show as green "+N Stat" lines. Skip them so an enchanted
-            -- equipped item is compared fairly against an unenchanted drop.
+            -- Green "+N Stat" is either one of the item's own bonus stats (spell power...)
+            -- or an enchant; anything not recognised as the former is skipped.
+            ParseGreen(lower, stats)
         elseif not ParseLine(lower, stats) then
             -- Random-suffix items: "+12 Arcane Spell Damage".
             local value, school = lower:match("^%+?([%d%.]+) (%a+) spell damage$")

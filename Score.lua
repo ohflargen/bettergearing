@@ -46,10 +46,26 @@ function BG:IsMismatch(info, profile)
     if best <= 0 then
         return false
     end
+    -- Spell power counts as both healing and spell damage. Judge that shared part once,
+    -- by whichever of the two this profile values more, so a healer's spell power is not
+    -- half "wasted" (and neither is a caster's).
+    local skipStat, skipValue
+    local heal, spdmg = info.stats.heal or 0, info.stats.spdmg or 0
+    if heal > 0 and spdmg > 0 then
+        local healWorth = self:GetWeight(profile, "heal") / self.STAT_BUDGET.heal
+        local dmgWorth = self:GetWeight(profile, "spdmg") / self.STAT_BUDGET.spdmg
+        skipStat = healWorth > dmgWorth and "spdmg" or "heal"
+        skipValue = math.min(heal, spdmg)
+    end
+
     local useful, wasted = 0, 0
     for stat, value in pairs(info.stats) do
         local budget = self.STAT_BUDGET[stat] or (stat:find("^school:") and 0.7)
-        if budget then
+        if stat == skipStat then
+            value = value - skipValue
+        end
+        -- Stamina is on almost everything and never makes an item wrong for a spec.
+        if budget and stat ~= "sta" and value > 0 then
             local points = value * budget
             if self:GetWeight(profile, stat) / budget < best * 0.1 then
                 wasted = wasted + points
