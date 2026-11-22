@@ -3,6 +3,7 @@
 ## Notes: Spec-aware gear upgrade advice for WoW Forever. Tunable stat weights, tank/solo profiles, Bagnon arrows.
 ## Author: mkwalter
 ## Version: 0.1.0
+## IconTexture: Interface\AddOns\BetterGearing\Icon
 ## Category: Equipment
 ## OptionalDeps: Bagnon, BagBrother
 ## SavedVariables: BetterGearingDB
