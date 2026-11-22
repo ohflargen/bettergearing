@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: BetterGearing
+## Notes: Spec-aware gear upgrade advice for WoW Forever. Tunable stat weights, tank/solo profiles, Bagnon arrows.
+## Author: mkwalter
+## Version: 0.1.0
+## Category: Equipment
+## OptionalDeps: Bagnon, BagBrother
+## SavedVariables: BetterGearingDB
+## SavedVariablesPerCharacter: BetterGearingCharDB
+
+Core.lua
+Profiles.lua
+Stats.lua
+Score.lua
+Tooltip.lua
+Bags.lua
+Quest.lua
+Tune.lua
