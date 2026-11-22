@@ -48,7 +48,7 @@ function BG:IsMismatch(info, profile)
     end
     local useful, wasted = 0, 0
     for stat, value in pairs(info.stats) do
-        local budget = self.STAT_BUDGET[stat]
+        local budget = self.STAT_BUDGET[stat] or (stat:find("^school:") and 0.7)
         if budget then
             local points = value * budget
             if self:GetWeight(profile, stat) / budget < best * 0.1 then
@@ -218,7 +218,7 @@ function BG:DescribeDiffs(result, profile, maxParts)
         local part = parts[i]
         local amount = math.abs(part.change)
         local number = (amount == math.floor(amount)) and tostring(amount) or string.format("%.1f", amount)
-        local short = self.STAT_SHORT[part.stat] or part.stat
+        local short = self.STAT_SHORT[part.stat] or (part.stat:gsub("^school:(.+)$", "%1 spell dmg"))
         local glue = short:sub(1, 1) == "%" and "" or " "
         local color = part.change > 0 and "|cff40ff40+" or "|cffff4040-"
         table.insert(texts, color .. number .. glue .. short .. "|r")

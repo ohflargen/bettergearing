@@ -47,6 +47,7 @@ BG.STAT_BUDGET = {
     when = "group"  : auto-selected while in a dungeon/raid or in a group
     when = "solo"   : auto-selected otherwise
     needShield      : two-handers are rejected, one-handers only compete for the main hand
+    school          : spell school whose school-only spell damage counts as spell damage
 ]]
 BG.SPECS = {
     HUNTER = {
@@ -74,6 +75,19 @@ BG.SPECS = {
         tabs = { "arms", "fury", "protection" },
         default = "protection",
         specs = {
+            fury = {
+                label = "Fury",
+                profiles = {
+                    {
+                        id = "dps", label = "Fury Warrior",
+                        -- weapon damage > hit > expertise > crit > strength
+                        weights = {
+                            dps = 5, hit = 10, expertise = 9, crit = 9, str = 1, agi = 0.6,
+                            ap = 0.45, haste = 6, sta = 0.45, armor = 0.02, hp5 = 0.3,
+                        },
+                    },
+                },
+            },
             protection = {
                 label = "Protection",
                 profiles = {
@@ -95,6 +109,59 @@ BG.SPECS = {
                             dps = 5, expertise = 10, hit = 10, agi = 1, str = 0.9, sta = 0.6,
                             crit = 8, ap = 0.45, haste = 5, armor = 0.02,
                             defense = 0.2, dodge = 4, parry = 4, block = 2, blockvalue = 0.2, hp5 = 0.5,
+                        },
+                    },
+                },
+            },
+        },
+    },
+    PALADIN = {
+        tabs = { "holy", "protection", "retribution" },
+        default = "retribution",
+        specs = {
+            retribution = {
+                label = "Retribution",
+                profiles = {
+                    {
+                        id = "dps", label = "Ret Paladin",
+                        -- weapon damage > hit > expertise > strength > spell power
+                        weights = {
+                            dps = 5, hit = 10, expertise = 9, str = 1, crit = 8, ap = 0.45,
+                            spdmg = 0.3, agi = 0.5, sta = 0.5, int = 0.15, haste = 5,
+                            spellcrit = 1, mp5 = 0.3, armor = 0.02, hp5 = 0.3,
+                        },
+                    },
+                },
+            },
+            protection = {
+                label = "Protection",
+                profiles = {
+                    {
+                        id = "tank", label = "Prot Paladin", needShield = true,
+                        -- stamina > defense > spell power > intellect > strength
+                        weights = {
+                            sta = 1, defense = 0.9, spdmg = 0.6, int = 0.4, str = 0.35,
+                            armor = 0.06, agi = 0.3, dodge = 10, parry = 10, block = 5, blockvalue = 0.35,
+                            hit = 5, expertise = 5, spellhit = 3, crit = 2, dps = 1, mp5 = 0.6, hp5 = 0.5,
+                        },
+                    },
+                },
+            },
+        },
+    },
+    MAGE = {
+        tabs = { "arcane", "fire", "frost" },
+        default = "arcane",
+        specs = {
+            arcane = {
+                label = "Arcane",
+                profiles = {
+                    {
+                        id = "dps", label = "Arcane Mage", school = "arcane",
+                        -- spell hit = spell power > crit > intellect > spirit > mp5
+                        weights = {
+                            spdmg = 1, spellhit = 10, spellcrit = 8, int = 0.5, spi = 0.3, mp5 = 1,
+                            spellhaste = 6, sta = 0.3, armor = 0.005, rdps = 0.1,
                         },
                     },
                 },
@@ -244,6 +311,15 @@ end
 --[[ Weights (defaults + saved overrides) ]]--
 
 function BG:GetWeight(profile, stat)
+    -- "school:arcane" etc: spell damage for one school only. Worth the profile's
+    -- spell damage weight when it is the profile's own school, nothing otherwise.
+    local school = stat:match("^school:(.+)$")
+    if school then
+        if profile.school ~= school then
+            return 0
+        end
+        stat = "spdmg"
+    end
     local overrides = BetterGearingDB and BetterGearingDB.weights[profile.key]
     local value = overrides and overrides[stat]
     if value ~= nil then

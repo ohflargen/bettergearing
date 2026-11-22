@@ -17,8 +17,12 @@ Spec-aware gear upgrade advice for World of Warcraft: Forever. A replacement for
 | Class | Spec | Profiles |
 |---|---|---|
 | Hunter | Beast Mastery | Ranged |
-| Warrior | Protection | Tanking (in a group or dungeon), Solo (otherwise) |
+| Mage | Arcane | Damage |
+| Paladin | Protection | Tanking |
+| Paladin | Retribution | Damage |
 | Priest | Holy | Healing |
+| Warrior | Fury | Damage |
+| Warrior | Protection | Tanking (in a group or dungeon), Solo (otherwise) |
 
 Other specs get no advice yet. New ones are added as profiles in `Profiles.lua`.
 

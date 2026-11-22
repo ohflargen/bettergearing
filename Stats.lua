@@ -257,15 +257,25 @@ function BG:GetItem(link)
         if lower:find("^equip: ") then
             local body = lower:gsub("^equip: ", "")
             if not ParseEquip(body, stats) then
-                table.insert(info.unparsed, text)
+                -- Spell damage for a single school ("Arcane spells and effects").
+                local school, value = body:match("^increases damage done by (%a+) spells and effects by up to ([%d%.]+)%.?$")
+                if school and tonumber(value) then
+                    Add(stats, "school:" .. school, tonumber(value))
+                else
+                    table.insert(info.unparsed, text)
+                end
             end
         elseif lower:find("^set: ") or lower:find("^use: ") or lower:find("^chance on hit: ") or lower:find("^%(%d+%) set") then
             -- not scored
         elseif line.green and lower:find("^%+") then
             -- Enchants show as green "+N Stat" lines. Skip them so an enchanted
             -- equipped item is compared fairly against an unenchanted drop.
-        else
-            ParseLine(lower, stats)
+        elseif not ParseLine(lower, stats) then
+            -- Random-suffix items: "+12 Arcane Spell Damage".
+            local value, school = lower:match("^%+?([%d%.]+) (%a+) spell damage$")
+            if school and tonumber(value) then
+                Add(stats, "school:" .. school, tonumber(value))
+            end
         end
     end
 
