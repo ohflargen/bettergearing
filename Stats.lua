@@ -122,6 +122,9 @@ local EQUIP = {
     { "^increases ranged attack power by " .. N .. "%.?$", { "rap" } },
     { "^%+" .. N .. " attack power%.?$", { "ap" } },
     { "^increases attack power by " .. N .. "%.?$", { "ap" } },
+    -- Druid weapons: "+N Attack Power in Cat, Bear, and Dire Bear forms only."
+    { "^%+" .. N .. " attack power in cat.- forms? only%.?$", { "feralap" } },
+    { "^increases attack power by " .. N .. " in cat.- forms? only%.?$", { "feralap" } },
     { "^increases healing done by up to " .. N .. " and damage done by up to " .. N .. " for all magical spells and effects%.?$", { "heal", "spdmg" } },
     { "^increases damage and healing done by magical spells and effects by up to " .. N .. "%.?$", { { "heal", "spdmg" } } },
     { "^increases spell power by " .. N .. "%.?$", { { "heal", "spdmg" } } },
@@ -149,6 +152,7 @@ local GREEN = {
     { "^%+" .. N .. " spell damage$", { "spdmg" } },
     { "^%+" .. N .. " ranged attack power$", { "rap" } },
     { "^%+" .. N .. " attack power$", { "ap" } },
+    { "^%+" .. N .. " attack power in cat.- forms? only%.?$", { "feralap" } },
     { "^%+" .. N .. " defense$", { "defense" } },
     { "^%+" .. N .. " block value$", { "blockvalue" } },
     { "^%+" .. N .. " mana per 5 sec%.?$", { "mp5" } },

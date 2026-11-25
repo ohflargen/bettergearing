@@ -41,7 +41,7 @@ end
 
 local function Build()
     window = CreateFrame("Frame", "BetterGearingTuneFrame", UIParent, "BasicFrameTemplateWithInset")
-    window:SetSize(470, 470)
+    window:SetSize(470, 500)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetMovable(true)

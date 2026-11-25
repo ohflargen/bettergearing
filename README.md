@@ -14,17 +14,23 @@ Spec-aware gear upgrade advice for World of Warcraft: Forever. A replacement for
 
 ## Supported specs
 
-| Class | Spec | Profiles |
+Every class and talent tree has a profile:
+
+| Class | Specs | Profiles |
 |---|---|---|
-| Hunter | Beast Mastery | Ranged |
-| Mage | Arcane | Damage |
-| Paladin | Protection | Tanking |
-| Paladin | Retribution | Damage |
-| Priest | Holy | Healing |
-| Warrior | Fury | Damage |
+| Druid | Balance, Restoration | One each |
+| Druid | Feral | Cat (default), Bear (`/bgear profile bear` while tanking) |
+| Hunter | Beast Mastery, Marksmanship, Survival | One each |
+| Mage | Arcane, Fire, Frost | One each |
+| Paladin | Holy, Protection, Retribution | One each |
+| Priest | Discipline, Holy, Shadow | One each |
+| Rogue | Assassination, Combat, Subtlety | One each |
+| Shaman | Elemental, Enhancement, Restoration | One each |
+| Warlock | Affliction, Demonology, Destruction | One each |
+| Warrior | Arms, Fury | One each |
 | Warrior | Protection | Tanking (in a group or dungeon), Solo (otherwise) |
 
-Other specs get no advice yet. New ones are added as profiles in `Profiles.lua`.
+Profiles live in `Profiles.lua`.
 
 ## Install
 
