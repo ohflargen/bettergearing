@@ -578,8 +578,12 @@ end
 
 -- All profiles for the current spec (empty table when the spec has none yet).
 function BG:GetProfiles()
-    local classData = self.SPECS[PlayerClass()]
-    local specId = self:GetSpec()
+    return self:ProfilesFor(PlayerClass(), (self:GetSpec()))
+end
+
+-- Profiles of any class and spec (empty table when unknown).
+function BG:ProfilesFor(classFile, specId)
+    local classData = self.SPECS[classFile]
     local spec = classData and specId and classData.specs[specId]
     return spec and spec.profiles or {}
 end

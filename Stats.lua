@@ -238,6 +238,49 @@ local TRAINABLE_WEAPONS = {
 -- Armor type learned at level 40 (armor subclass id: 3 = mail, 4 = plate).
 local ARMOR_AT_40 = { HUNTER = 3, SHAMAN = 3, WARRIOR = 4, PALADIN = 4 }
 
+-- Best armor each class can wear (armor subclass: 1 cloth, 2 leather, 3 mail, 4 plate).
+local ARMOR_MAX = { MAGE = 1, PRIEST = 1, WARLOCK = 1, ROGUE = 2, DRUID = 2, HUNTER = 3, SHAMAN = 3, WARRIOR = 4, PALADIN = 4 }
+local SHIELD_CLASSES = Classes("WARRIOR PALADIN SHAMAN")
+local RELIC_CLASS = { [7] = "PALADIN", [8] = "DRUID", [9] = "SHAMAN" }     -- libram, idol, totem
+local WAND_CLASSES = Classes("MAGE PRIEST WARLOCK")
+
+--[[ BG:UsableBy(info, classFile) -> usable, levelNeeded
+    Whether a character of another class could use the item. Used for previews, where the red
+    tooltip text (which describes the logged-in character) says nothing about the target.
+    Weapon skills a trainer can teach count as usable.
+]]
+function BG:UsableBy(info, classFile)
+    local needed = info.reqLevel or 0
+    if info.classes then
+        local localized = LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile] or classFile
+        if not info.classes[localized:lower()] then
+            return false
+        end
+    end
+    local sub = info.subclassID
+    if info.classID == 4 and sub then
+        local best = ARMOR_MAX[classFile] or 1
+        if sub >= 1 and sub <= 4 then
+            if sub > best then
+                return false
+            end
+            if sub >= 3 and sub == best then
+                needed = math.max(needed, 40)       -- mail / plate is learned at 40
+            end
+        elseif sub == 6 and not SHIELD_CLASSES[classFile] then
+            return false
+        elseif RELIC_CLASS[sub] and RELIC_CLASS[sub] ~= classFile then
+            return false
+        end
+    elseif info.classID == 2 and sub then
+        local allowed = TRAINABLE_WEAPONS[sub] or (sub == 19 and WAND_CLASSES)
+        if allowed and not allowed[classFile] then
+            return false
+        end
+    end
+    return true, needed
+end
+
 local RANGED_LOC = {
     INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true, INVTYPE_THROWN = true,
 }
@@ -259,7 +302,12 @@ function BG:GetItem(link)
     if not name then
         return nil
     end
-    local info = { link = link, name = name, equipLoc = equipLoc, minLevel = minLevel or 0, stats = {}, unparsed = {} }
+    local info = {
+        link = link, name = name, equipLoc = equipLoc, stats = {}, unparsed = {},
+        minLevel = minLevel or 0,       -- for the logged-in character (raised for mail/plate before 40)
+        reqLevel = minLevel or 0,       -- as printed on the item
+        classID = classID, subclassID = subclassID,
+    }
     if not equipLoc or equipLoc == "" or equipLoc == "INVTYPE_BAG" or equipLoc == "INVTYPE_AMMO"
         or equipLoc == "INVTYPE_QUIVER" or equipLoc == "INVTYPE_BODY" or equipLoc == "INVTYPE_TABARD"
         or equipLoc == "INVTYPE_NON_EQUIP_IGNORE" then
@@ -291,7 +339,13 @@ function BG:GetItem(link)
             end
         end
 
-        if lower:find("^equip: ") then
+        local classList = lower:match("^classes: (.+)$")
+        if classList then
+            info.classes = {}
+            for className in classList:gmatch("[^,]+") do
+                info.classes[strtrim(className)] = true
+            end
+        elseif lower:find("^equip: ") then
             local body = lower:gsub("^equip: ", "")
             if not ParseEquip(body, stats) then
                 -- Spell damage for a single school ("Arcane spells and effects").

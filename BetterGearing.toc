@@ -13,6 +13,7 @@ Core.lua
 Profiles.lua
 Stats.lua
 Score.lua
+Preview.lua
 Tooltip.lua
 Bags.lua
 Quest.lua

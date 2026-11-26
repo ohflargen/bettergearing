@@ -8,13 +8,29 @@ local REASONS = {
     offhand = "can't go with your current weapon",
 }
 
-local function ProfileLine(link, profile, isActive, showName)
-    local result = BG:Compare(link, profile)
+-- Change as a percentage of everything the character wears, or "" when that total is too
+-- small to give a meaningful number (fresh characters in starter gear, mostly bare slots).
+local MIN_TOTAL_FOR_PERCENT = 5
+
+local function Percent(result, profile, who, sign)
+    local total = BG:TotalScore(profile, who)
+    if not total or total < MIN_TOTAL_FOR_PERCENT then
+        return ""
+    end
+    return string.format(" (%s%.0f%%)", sign, result.delta / total * 100)
+end
+
+local function ProfileLine(link, profile, who, isActive, showName)
+    local result = BG:Compare(link, profile, who)
     if result.pending or result.reason == "notgear" then
         return nil
     end
     local name = (showName and profile.short or profile.label) .. (isActive and showName and " (active)" or "")
 
+    if who.noGear and not result.reason then
+        -- Spec preview: no gear to compare with, so show the item's own value.
+        return name, string.format("|cffaaaaaascore %.1f|r", result.score), BG:DescribeDiffs(result, profile)
+    end
     if result.reason == "equipped" then
         return name, string.format("|cffaaaaaaequipped (score %.1f)|r", result.score)
     end
@@ -27,9 +43,7 @@ local function ProfileLine(link, profile, isActive, showName)
 
     local text
     if result.better then
-        -- A percentage against a near-worthless equipped item (score ~0) is meaningless, so hide it.
-        local pct = (result.pct and result.base >= 1 and result.pct <= 300) and string.format(" (+%.0f%%)", result.pct) or ""
-        text = string.format("|cff40ff40upgrade +%.1f%s|r", result.delta, pct)
+        text = string.format("|cff40ff40upgrade +%.1f%s|r", result.delta, Percent(result, profile, who, "+"))
         if result.level then
             text = text .. string.format(" |cffffd100at level %d|r", result.level)
         end
@@ -39,8 +53,7 @@ local function ProfileLine(link, profile, isActive, showName)
     elseif result.delta > -0.1 then
         text = "|cffaaaaaaabout the same|r"
     else
-        local pct = (result.pct and result.base >= 1) and string.format(" (%.0f%%)", result.pct) or ""
-        text = string.format("|cffff4040worse %.1f%s|r", result.delta, pct)
+        text = string.format("|cffff4040worse %.1f%s|r", result.delta, Percent(result, profile, who, ""))
     end
     return name, text, BG:DescribeDiffs(result, profile)
 end
@@ -53,26 +66,33 @@ local function AddToTooltip(tooltip, link)
     if not info or info.notGear then
         return
     end
-    local profiles = BG:GetProfiles()
-    if #profiles == 0 then
-        return
-    end
-    local active = BG:GetActiveProfile()
-    local several = #profiles > 1
-
     local added = false
-    for _, profile in ipairs(profiles) do
-        local name, text, why = ProfileLine(link, profile, profile == active, several)
-        if name then
-            if not added then
-                tooltip:AddLine(" ")
-                added = true
-            end
-            tooltip:AddDoubleLine("|cff33ff99" .. name .. "|r", text)
-            if why then
-                tooltip:AddLine("   " .. why, 1, 1, 1)
+    local function AddProfiles(profiles, who, active, heading)
+        local several = #profiles > 1
+        local headed = false
+        for _, profile in ipairs(profiles) do
+            local name, text, why = ProfileLine(link, profile, who, profile == active, several)
+            if name then
+                if not added then
+                    tooltip:AddLine(" ")
+                    added = true
+                end
+                if heading and not headed then
+                    tooltip:AddLine(heading, 1, 0.82, 0)
+                    headed = true
+                end
+                tooltip:AddDoubleLine("|cff33ff99" .. name .. "|r", text)
+                if why then
+                    tooltip:AddLine("   " .. why, 1, 1, 1)
+                end
             end
         end
+    end
+
+    AddProfiles(BG:GetProfiles(), BG:PlayerWho(), BG:GetActiveProfile())
+    local preview = BG:GetPreview()
+    if preview then
+        AddProfiles(preview.profiles, preview.who, nil, "For " .. preview.title .. ":")
     end
     if added then
         tooltip:Show()

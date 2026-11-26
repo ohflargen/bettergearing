@@ -23,9 +23,11 @@ end
 local function InitDB()
     BetterGearingDB = BetterGearingDB or {}
     BetterGearingDB.weights = BetterGearingDB.weights or {}   -- [profileKey][stat] = override
+    BetterGearingDB.chars = BetterGearingDB.chars or {}       -- ["Name-Realm"] = snapshot (Preview.lua)
     BetterGearingCharDB = BetterGearingCharDB or {}
     -- BetterGearingCharDB.spec        : manual spec override (nil = detect from talents)
     -- BetterGearingCharDB.profileMode : "auto" or a profile id such as "tank" / "solo"
+    -- BetterGearingCharDB.preview     : nil, { char = "Name-Realm" } or { class = "MAGE", spec = "arcane" }
     BetterGearingCharDB.profileMode = BetterGearingCharDB.profileMode or "auto"
 end
 
@@ -81,6 +83,10 @@ SlashCmdList["BETTERGEARING"] = function(input)
         local profile = BG:GetActiveProfile()
         BG:Print("spec: " .. tostring(specId) .. " (" .. how .. "); profile mode: " .. BetterGearingCharDB.profileMode
             .. "; active profile: " .. (profile and profile.label or "none - no profile for this spec yet"))
+        local preview = BG:GetPreview()
+        if preview then
+            BG:Print("previewing items for " .. preview.title .. " (/bgear view off to stop)")
+        end
         local hooked, seen, arrows = BG:BagStatus()
         BG:Print("Bagnon hook: " .. (hooked and "installed" or "|cffff4040NOT installed|r") .. "; item buttons seen: " .. seen .. "; arrows showing: " .. arrows)
     elseif cmd == "spec" then
@@ -103,6 +109,8 @@ SlashCmdList["BETTERGEARING"] = function(input)
         local profile = BG:GetActiveProfile()
         BG:Print("profile mode " .. BetterGearingCharDB.profileMode .. "; active: " .. (profile and profile.label or "none"))
         BG:Changed()
+    elseif cmd == "view" then
+        BG:PreviewCommand(rest)
     elseif cmd == "set" then
         -- /bgear set <stat> <value>   (applies to the active profile)
         local stat, value = rest:match("^(%S+)%s+(%-?[%d%.]+)$")
@@ -141,6 +149,6 @@ SlashCmdList["BETTERGEARING"] = function(input)
             BG:Print("  |cffff8800not understood:|r " .. line)
         end
     else
-        BG:Print("commands: /bgear (tuning window), status, spec <name|auto>, profile <id|auto>, set <stat> <value>, reset, debug [link]")
+        BG:Print("commands: /bgear (tuning window), status, spec <name|auto>, profile <id|auto>, view <character|class spec|off>, set <stat> <value>, reset, debug [link]")
     end
 end

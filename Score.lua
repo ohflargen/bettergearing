@@ -11,7 +11,10 @@ local SIMPLE_SLOTS = {
 
 local MAIN, OFF = 16, 17
 
-local DUAL_WIELD_CLASSES = { HUNTER = true, ROGUE = true, WARRIOR = true }
+BG.DUAL_WIELD_CLASSES = { HUNTER = true, ROGUE = true, WARRIOR = true }
+
+-- Every slot that holds scored gear (no shirt or tabard).
+BG.GEAR_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
 
 local function CanDualWield()
     if type(_G.CanDualWield) == "function" then
@@ -21,7 +24,22 @@ local function CanDualWield()
         end
     end
     local _, classFile = UnitClass("player")
-    return DUAL_WIELD_CLASSES[classFile] or false
+    return BG.DUAL_WIELD_CLASSES[classFile] or false
+end
+
+--[[ "Who": whose gear an item is judged against.
+    The logged-in character by default; Preview.lua builds the same shape for other characters.
+      class, level, dualWield
+      Link(slot)  : link of the item worn in that slot, or nil
+      isPlayer    : the logged-in character (red tooltip text then decides usability)
+      noGear      : nothing is known about the gear (a spec preview), only raw scores make sense
+]]
+function BG:PlayerWho()
+    local _, classFile = UnitClass("player")
+    return {
+        isPlayer = true, class = classFile, level = UnitLevel("player") or 1, dualWield = CanDualWield(),
+        Link = function(slot) return GetInventoryItemLink("player", slot) end,
+    }
 end
 
 function BG:Score(info, profile)
@@ -78,12 +96,30 @@ function BG:IsMismatch(info, profile)
 end
 
 -- Equipped item info for a slot: info table, false when the slot is empty, nil when not cached yet.
-local function Equipped(slot)
-    local link = GetInventoryItemLink("player", slot)
+local function Equipped(slot, who)
+    local link = who.Link(slot)
     if not link then
         return false
     end
     return BG:GetItem(link)
+end
+
+-- Score of everything the character wears, or nil while some of it is not cached yet.
+-- Upgrade percentages are measured against this, not against the single item replaced:
+-- at low level that item often scores almost nothing and the percentage explodes.
+function BG:TotalScore(profile, who)
+    who = who or self:PlayerWho()
+    local total = 0
+    for _, slot in ipairs(self.GEAR_SLOTS) do
+        local equipped = Equipped(slot, who)
+        if equipped == nil then
+            return nil
+        end
+        if equipped then
+            total = total + self:Score(equipped, profile)
+        end
+    end
+    return total
 end
 
 local function IsWeaponLoc(loc)
@@ -91,7 +127,7 @@ local function IsWeaponLoc(loc)
 end
 
 -- Which sets of equipped slots could this item replace? Returns options, blockedReason.
-local function ReplaceOptions(info, profile)
+local function ReplaceOptions(info, profile, who)
     local loc = info.equipLoc
     local simple = SIMPLE_SLOTS[loc]
     if simple then
@@ -102,7 +138,7 @@ local function ReplaceOptions(info, profile)
         return options
     end
 
-    local main, off = Equipped(MAIN), Equipped(OFF)
+    local main, off = Equipped(MAIN, who), Equipped(OFF, who)
     if main == nil or off == nil then
         return nil, "pending"
     end
@@ -117,7 +153,7 @@ local function ReplaceOptions(info, profile)
         return { { MAIN } }
     elseif loc == "INVTYPE_WEAPON" then
         local options = { { MAIN } }
-        if not profile.needShield and not mainIsTwoHand and CanDualWield()
+        if not profile.needShield and not mainIsTwoHand and who.dualWield
             and (off == false or IsWeaponLoc(off.equipLoc)) then
             table.insert(options, { OFF })
         end
@@ -126,7 +162,7 @@ local function ReplaceOptions(info, profile)
         if profile.needShield then
             return nil, "shield"
         end
-        if mainIsTwoHand or not CanDualWield() then
+        if mainIsTwoHand or not who.dualWield then
             return nil, "offhand"
         end
         return { { OFF } }
@@ -139,15 +175,16 @@ local function ReplaceOptions(info, profile)
     return nil, "notgear"
 end
 
---[[ BG:Compare(link, profile)
+--[[ BG:Compare(link, profile[, who])
     Returns a result table:
       pending   : true when item data is not loaded yet
       reason    : nil when comparable, else "notgear" | "equipped" | "unusable" | "mismatch" | "shield" | "offhand"
       level     : required level when the character is too low (still compared)
-      score, base, delta, pct, diffs = { stat = change }
+      score, base, delta, diffs = { stat = change }
       upgrade   : true when it should get an arrow for this profile
 ]]
-function BG:Compare(link, profile)
+function BG:Compare(link, profile, who)
+    who = who or self:PlayerWho()
     local info = self:GetItem(link)
     if not info then
         return { pending = true }
@@ -157,12 +194,19 @@ function BG:Compare(link, profile)
     end
 
     local result = { score = self:Score(info, profile) }
-    if info.unusable then
+    local usable, needLevel, training
+    if who.isPlayer then
+        usable, needLevel, training = not info.unusable, info.minLevel, info.needsTraining
+    else
+        -- Red tooltip text describes the logged-in character, so judge by class rules instead.
+        usable, needLevel = self:UsableBy(info, who.class)
+    end
+    if not usable then
         result.reason = "unusable"
         return result
     end
 
-    local options, blocked = ReplaceOptions(info, profile)
+    local options, blocked = ReplaceOptions(info, profile, who)
     if blocked == "pending" then
         return { pending = true }
     end
@@ -178,7 +222,7 @@ function BG:Compare(link, profile)
             diffs[stat] = value
         end
         for _, slot in ipairs(slots) do
-            local equipped = Equipped(slot)
+            local equipped = Equipped(slot, who)
             if equipped == nil then
                 return { pending = true }
             end
@@ -200,18 +244,16 @@ function BG:Compare(link, profile)
     end
 
     result.delta, result.base, result.diffs = best.delta, best.base, best.diffs
-    result.pct = best.base > 0 and (best.delta / best.base * 100) or nil
 
     if self:IsMismatch(info, profile) then
         result.reason = "mismatch"
         return result
     end
-    local level = UnitLevel("player") or 1
-    if info.minLevel > level then
-        result.level = info.minLevel
+    if needLevel > who.level then
+        result.level = needLevel
     end
     result.better = best.delta > math.max(0.1, best.base * 0.01)
-    result.training = info.needsTraining or nil
+    result.training = training or nil
     result.upgrade = result.better and not result.level and not result.training
     return result
 end

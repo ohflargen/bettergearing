@@ -11,6 +11,8 @@ Spec-aware gear upgrade advice for World of Warcraft: Forever. A replacement for
   - Orange: an upgrade only for your other profile (for example a tanking piece while you are solo).
 - **Sanity rules before scoring**: items you cannot equip, and items whose stats are mostly wasted on your spec (spell power on a hunter), are never suggested.
 - **Tunable weights**: every stat weight can be changed in game and is saved account-wide.
+- **Previews for other characters**: while crafting or shopping for an alt, `/bgear view <name>` adds that character's verdict to tooltips, compared with the gear they wore when last logged in. Each character is remembered once it has logged in with BetterGearing enabled.
+- **Upgrade percentages** are measured against everything you wear, not just the item being replaced, so a small gain over a starter item is not shown as +200%.
 
 ## Supported specs
 
@@ -44,6 +46,9 @@ Copy this folder into `World of Warcraft\_forever_\Interface\AddOns\` as `Better
 | `/bgear status` | Show the detected spec, active profile and Bagnon hook state |
 | `/bgear spec <name\|auto>` | Force a spec, or go back to talent detection |
 | `/bgear profile <id\|auto>` | Force a profile such as `tank` or `solo` |
+| `/bgear view <character>` | Also judge items for one of your other characters, against their gear |
+| `/bgear view <class> [spec]` | Also show item scores for any spec, such as `mage arcane` |
+| `/bgear view off` | Stop previewing |
 | `/bgear set <stat> <value>` | Change one weight on the active profile |
 | `/bgear reset` | Reset the active profile to default weights |
 | `/bgear debug [item link]` | List the stats read from an item |
