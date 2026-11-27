@@ -5,14 +5,27 @@ Spec-aware gear upgrade advice for World of Warcraft: Forever. A replacement for
 ## What it does
 
 - **Scores gear for your current spec**, detected from your talent points.
-- **Tooltip verdict** on every piece of gear: upgrade, worse, or about the same, with the stat changes that decided it.
-- **Upgrade arrows** on Bagnon bag slots and on quest reward buttons.
+- **Tooltip verdict** on every piece of gear: upgrade, worse, about the same, or equipped, with the stat changes that decided it.
+- **Upgrade arrows** on Bagnon bag slots, on quest reward buttons, and after recipe names in the profession window. Recipes for an item you already wear show "equipped" instead, and a dimmed arrow with a level number marks a recipe that becomes an upgrade at that level (up to 5 levels ahead).
   - Green: an upgrade for your active profile.
   - Orange: an upgrade only for your other profile (for example a tanking piece while you are solo).
 - **Sanity rules before scoring**: items you cannot equip, and items whose stats are mostly wasted on your spec (spell power on a hunter), are never suggested.
 - **Tunable weights**: every stat weight can be changed in game and is saved account-wide.
 - **Previews for other characters**: while crafting or shopping for an alt, `/bgear view <name>` adds that character's verdict to tooltips, compared with the gear they wore when last logged in. Each character is remembered once it has logged in with BetterGearing enabled.
 - **Upgrade percentages** are measured against everything you wear, not just the item being replaced, so a small gain over a starter item is not shown as +200%.
+
+## How scoring works
+
+Each profile gives every stat a weight: how much one point of that stat is worth to the spec (for percent stats such as crit, one percent). An item's **score** is each of its stats multiplied by its weight, added up. For example, with agility at 1.0, attack power at 0.5 and stamina at 0.1, an item with +10 agility, +20 attack power and +5 stamina scores 10 + 10 + 0.5 = 20.5.
+
+The tooltip turns that into a verdict:
+
+- **upgrade +X / worse -X**: the item's score minus the score of what it would replace. For rings, trinkets and one-handers that can go in two slots, it is compared against whichever slot gains the most.
+- **The percentage**: that difference against the total score of all your worn gear, so a small gain over a nearly worthless starter item is not shown as +200%.
+- **about the same**: less than 0.1 worse and not enough better to count (more than 0.1, and more than 1% of what it replaces).
+- **equipped (score X)**: you are already wearing this item (another copy counts too); X is its own score.
+
+Scores are relative numbers with no fixed scale, and only mean something within one profile: the same item scores differently for a tank and a damage dealer. Weights can be changed in the tuning window (`/bgear`) and are saved account-wide.
 
 ## Supported specs
 

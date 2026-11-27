@@ -122,6 +122,17 @@ function BG:TotalScore(profile, who)
     return total
 end
 
+-- Item ID plus random suffix ("of the Bear"), ignoring enchants, gems and the per-copy unique ID,
+-- so a crafting recipe result or a bag copy matches the same item being worn.
+local function ItemKey(link)
+    local itemString = link and link:match("item:([%-%d:]+)")
+    if not itemString then
+        return link
+    end
+    local fields = { strsplit(":", itemString) }
+    return (fields[1] or "") .. ":" .. (fields[7] or "")
+end
+
 local function IsWeaponLoc(loc)
     return loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONOFFHAND" or loc == "INVTYPE_WEAPONMAINHAND"
 end
@@ -215,9 +226,13 @@ function BG:Compare(link, profile, who)
         return result
     end
 
+    -- Swapping an item for another copy of itself is no change, so skip slots already holding it.
+    -- When every option is such a slot the item counts as equipped. A second copy of a ring or
+    -- one-hander can still be compared against the other ring or weapon slot.
+    local key = ItemKey(link)
     local best
     for _, slots in ipairs(options) do
-        local base, diffs = 0, {}
+        local base, diffs, same = 0, {}, false
         for stat, value in pairs(info.stats) do
             diffs[stat] = value
         end
@@ -231,6 +246,9 @@ function BG:Compare(link, profile, who)
                     result.reason = "equipped"
                     return result
                 end
+                if ItemKey(equipped.link) == key then
+                    same = true
+                end
                 base = base + self:Score(equipped, profile)
                 for stat, value in pairs(equipped.stats) do
                     diffs[stat] = (diffs[stat] or 0) - value
@@ -238,9 +256,13 @@ function BG:Compare(link, profile, who)
             end
         end
         local delta = result.score - base
-        if not best or delta > best.delta then
+        if not same and (not best or delta > best.delta) then
             best = { delta = delta, base = base, diffs = diffs }
         end
+    end
+    if not best then
+        result.reason = "equipped"
+        return result
     end
 
     result.delta, result.base, result.diffs = best.delta, best.base, best.diffs
@@ -284,9 +306,26 @@ function BG:DescribeDiffs(result, profile, maxParts)
     return #texts > 0 and table.concat(texts, ", ") or nil
 end
 
--- Bag arrow state: nil = not known yet, false = no arrow,
--- "active" = upgrade for the active profile, "other" = upgrade only for another profile of this spec.
-function BG:BagState(link)
+-- Is this comparison worth an arrow? Returns counts, soonLevel. With lookahead, an upgrade that only
+-- waits on its required level counts too when that level is at most lookahead levels away
+-- (soonLevel = that level).
+local function ArrowWorthy(result, lookahead, level)
+    if result.upgrade then
+        return true, nil
+    end
+    if lookahead and result.better and result.level and not result.training
+        and result.level - level <= lookahead then
+        return true, result.level
+    end
+    return false, nil
+end
+
+--[[ Arrow state: nil = not known yet, false = no arrow,
+    "active" = upgrade for the active profile, "other" = upgrade only for another profile of this spec.
+    Second return value: the required level when it is an upgrade only once the character reaches
+    that level (only with lookahead, used by the recipe list).
+]]
+function BG:BagState(link, lookahead)
     local active = self:GetActiveProfile()
     if not active or not link then
         return false
@@ -298,8 +337,10 @@ function BG:BagState(link)
     if result.reason == "notgear" or result.reason == "unusable" or result.reason == "equipped" then
         return false
     end
-    if result.upgrade then
-        return "active"
+    local level = UnitLevel("player") or 1
+    local counts, soon = ArrowWorthy(result, lookahead, level)
+    if counts then
+        return "active", soon
     end
     for _, profile in ipairs(self:GetProfiles()) do
         if profile ~= active then
@@ -307,8 +348,9 @@ function BG:BagState(link)
             if other.pending then
                 return nil
             end
-            if other.upgrade then
-                return "other"
+            counts, soon = ArrowWorthy(other, lookahead, level)
+            if counts then
+                return "other", soon
             end
         end
     end

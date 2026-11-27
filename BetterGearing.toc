@@ -17,4 +17,5 @@ Preview.lua
 Tooltip.lua
 Bags.lua
 Quest.lua
+Crafting.lua
 Tune.lua

@@ -32,7 +32,7 @@ local function ProfileLine(link, profile, who, isActive, showName)
         return name, string.format("|cffaaaaaascore %.1f|r", result.score), BG:DescribeDiffs(result, profile)
     end
     if result.reason == "equipped" then
-        return name, string.format("|cffaaaaaaequipped (score %.1f)|r", result.score)
+        return name, string.format("|cffffd100equipped|r |cffaaaaaa(score %.1f)|r", result.score)
     end
     if result.reason and not result.delta then
         return name, "|cff999999" .. (REASONS[result.reason] or result.reason) .. "|r"

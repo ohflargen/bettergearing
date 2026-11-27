@@ -41,7 +41,7 @@ end
 
 local function Build()
     window = CreateFrame("Frame", "BetterGearingTuneFrame", UIParent, "BasicFrameTemplateWithInset")
-    window:SetSize(470, 500)
+    window:SetSize(470, 540)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetMovable(true)
@@ -81,6 +81,15 @@ local function Build()
     hint:SetJustifyH("LEFT")
     hint:SetText("Value of one point of each stat (percent stats: per 1%). 0 = ignored. Press Enter to apply. Gold = changed from default.")
 
+    local explain = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    explain:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -6)
+    explain:SetWidth(430)
+    explain:SetJustifyH("LEFT")
+    explain:SetText("An item's score is each of its stats times that stat's weight, added up. In tooltips, "
+        .. "upgrade/worse is the score change versus what you wear in that slot, and the % is that change "
+        .. "against the score of all your worn gear. Scores only compare within one profile.")
+
+    local top = 40      -- room for the explanation above the rows
     local perColumn = math.ceil(#BG.STAT_ORDER / 2)
     for index, stat in ipairs(BG.STAT_ORDER) do
         local column = index > perColumn and 1 or 0
@@ -88,12 +97,12 @@ local function Build()
         local row = { stat = stat }
 
         row.label = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        row.label:SetPoint("TOPLEFT", 22 + column * 222, -96 - line * 25)
+        row.label:SetPoint("TOPLEFT", 22 + column * 222, -96 - top - line * 25)
         row.label:SetText(BG.STAT_LABELS[stat])
 
         row.box = CreateFrame("EditBox", nil, window, "InputBoxTemplate")
         row.box:SetSize(52, 20)
-        row.box:SetPoint("TOPLEFT", 158 + column * 222, -92 - line * 25)
+        row.box:SetPoint("TOPLEFT", 158 + column * 222, -92 - top - line * 25)
         row.box:SetAutoFocus(false)
         row.box:SetMaxLetters(7)
         row.box:SetScript("OnEnterPressed", function(self)
