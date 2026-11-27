@@ -49,7 +49,18 @@ Profiles live in `Profiles.lua`.
 
 ## Install
 
-Copy this folder into `World of Warcraft\_forever_\Interface\AddOns\` as `BetterGearing`, and disable Pawn. Bagnon is optional but needed for bag arrows.
+Install from [CurseForge](https://www.curseforge.com/projects/1830475), or copy this folder into `World of Warcraft\_forever_\Interface\AddOns\` as `BetterGearing`. Disable Pawn. Bagnon is optional but needed for bag arrows.
+
+## Releasing
+
+Pushing a tag that starts with `v` publishes a release:
+
+```
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+A GitHub Action (`.github/workflows/release.yml`) runs the [BigWigs packager](https://github.com/BigWigsMods/packager), which builds the zip, stamps the tag into the toc's `@project-version@`, uploads it to CurseForge (project 1830475, using the `CF_API_KEY` repository secret) and attaches it to a GitHub release. Tags containing `alpha` or `beta` are uploaded as alpha or beta files.
 
 ## Commands
 

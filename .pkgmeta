@@ -1,0 +1,6 @@
+package-as: BetterGearing
+
+ignore:
+  - .github
+  - .gitignore
+  - .pkgmeta
