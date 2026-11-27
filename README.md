@@ -11,7 +11,8 @@ Spec-aware gear upgrade advice for World of Warcraft: Forever. A replacement for
   - Orange: an upgrade only for your other profile (for example a tanking piece while you are solo).
 - **Sanity rules before scoring**: items you cannot equip, and items whose stats are mostly wasted on your spec (spell power on a hunter), are never suggested.
 - **Tunable weights**: every stat weight can be changed in game and is saved account-wide.
-- **Previews for other characters**: while crafting or shopping for an alt, `/bgear view <name>` adds that character's verdict to tooltips, compared with the gear they wore when last logged in. Each character is remembered once it has logged in with BetterGearing enabled.
+- **Previews for other characters**: while crafting or shopping for an alt, `/bgear view <name>` adds that character's verdict to tooltips, compared with the gear they wore when last logged in. Each character is remembered once it has logged in with BetterGearing enabled. While a preview is on, the recipe list's arrows are for that character too.
+- **Crafting for other players**: inspect someone and click the BetterGearing icon in the inspect window's title bar, next to the close button (or `/bgear view target`). Tooltips and your recipe list then show which of your recipes would be upgrades for them, and a line above the recipe search box names whose upgrades the arrows show. Their spec is read from their talents; if it can't be, or they play another spec, set it with `/bgear view target <spec>` (for example `holy`). Click the icon again, or `/bgear view off`, to go back to your own upgrades.
 - **Upgrade percentages** are measured against everything you wear, not just the item being replaced, so a small gain over a starter item is not shown as +200%.
 
 ## How scoring works
@@ -53,14 +54,17 @@ Install from [CurseForge](https://www.curseforge.com/projects/1830475), or copy 
 
 ## Releasing
 
-Pushing a tag that starts with `v` publishes a release:
+1. Add the new version's notes to the top of `CHANGELOG.md`; they become the CurseForge and GitHub release notes.
+2. Commit, then push a tag that starts with `v`:
 
 ```
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin main v0.3.0
 ```
 
 A GitHub Action (`.github/workflows/release.yml`) runs the [BigWigs packager](https://github.com/BigWigsMods/packager), which builds the zip, stamps the tag into the toc's `@project-version@`, uploads it to CurseForge (project 1830475, using the `CF_API_KEY` repository secret) and attaches it to a GitHub release. Tags containing `alpha` or `beta` are uploaded as alpha or beta files.
+
+The CurseForge project description is not uploaded by the packager. Its text lives in `CURSEFORGE.md`; paste it into the project's description editor (Markdown) when it changes.
 
 ## Commands
 
@@ -71,6 +75,7 @@ A GitHub Action (`.github/workflows/release.yml`) runs the [BigWigs packager](ht
 | `/bgear spec <name\|auto>` | Force a spec, or go back to talent detection |
 | `/bgear profile <id\|auto>` | Force a profile such as `tank` or `solo` |
 | `/bgear view <character>` | Also judge items for one of your other characters, against their gear |
+| `/bgear view target [spec]` | Inspect your target and judge items for them, against the gear they wear now. Give a spec if their talents can't be read |
 | `/bgear view <class> [spec]` | Also show item scores for any spec, such as `mage arcane` |
 | `/bgear view off` | Stop previewing |
 | `/bgear set <stat> <value>` | Change one weight on the active profile |

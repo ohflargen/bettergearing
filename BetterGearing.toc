@@ -19,4 +19,5 @@ Tooltip.lua
 Bags.lua
 Quest.lua
 Crafting.lua
+Inspect.lua
 Tune.lua

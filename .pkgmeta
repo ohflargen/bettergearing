@@ -1,6 +1,11 @@
 package-as: BetterGearing
 
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
 ignore:
   - .github
   - .gitignore
   - .pkgmeta
+  - CURSEFORGE.md

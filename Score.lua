@@ -326,25 +326,38 @@ end
     that level (only with lookahead, used by the recipe list).
 ]]
 function BG:BagState(link, lookahead)
-    local active = self:GetActiveProfile()
+    return self:ArrowState(link, lookahead)
+end
+
+--[[ BG:ArrowState(link, lookahead[, target])
+    Same as BagState, for any character. target = { who, profiles, active } (see BG:ArrowTarget);
+    defaults to the logged-in character.
+]]
+function BG:ArrowState(link, lookahead, target)
+    local who, profiles, active
+    if target then
+        who, profiles, active = target.who, target.profiles, target.active
+    else
+        who, profiles, active = self:PlayerWho(), self:GetProfiles(), self:GetActiveProfile()
+    end
     if not active or not link then
         return false
     end
-    local result = self:Compare(link, active)
+    local result = self:Compare(link, active, who)
     if result.pending then
         return nil
     end
     if result.reason == "notgear" or result.reason == "unusable" or result.reason == "equipped" then
         return false
     end
-    local level = UnitLevel("player") or 1
+    local level = who.level or 1
     local counts, soon = ArrowWorthy(result, lookahead, level)
     if counts then
         return "active", soon
     end
-    for _, profile in ipairs(self:GetProfiles()) do
+    for _, profile in ipairs(profiles) do
         if profile ~= active then
-            local other = self:Compare(link, profile)
+            local other = self:Compare(link, profile, who)
             if other.pending then
                 return nil
             end

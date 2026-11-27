@@ -1,5 +1,6 @@
 -- BetterGearing: upgrade arrow or "equipped" after recipe names in the profession window's recipe list.
 -- Same colors as the bags: green = upgrade for the active profile, orange = for your other profile.
+-- While previewing a character with gear (an alt, or a player you inspected), the marks are for them.
 -- The list is a ScrollBox that recycles row frames, so rows are decorated each time one is bound to a recipe.
 local _, BG = ...
 
@@ -69,7 +70,10 @@ local function Decorate(row, node)
     local widgets = row.BetterGearing
     local data = node and node.GetData and node:GetData()
     local recipeInfo = type(data) == "table" and data.recipeInfo
-    if not (recipeInfo and row.Label and BetterGearingDB and BG:GetActiveProfile()) then
+    -- Whose upgrades: the previewed character (an alt, or a player you inspected), else yours.
+    local target = BetterGearingDB and BG:ArrowTarget()
+    local active = target and target.active or (BetterGearingDB and BG:GetActiveProfile())
+    if not (recipeInfo and row.Label and active) then
         if widgets then
             widgets.arrow:Hide()
             widgets.level:Hide()
@@ -81,13 +85,13 @@ local function Decorate(row, node)
     local link = OutputLink(recipeInfo.recipeID)
     local state, soonLevel, equipped = false, nil, false
     if link then
-        local ok, result = pcall(BG.Compare, BG, link, BG:GetActiveProfile())
+        local ok, result = pcall(BG.Compare, BG, link, active, target and target.who)
         if ok and result.pending then
             state = nil
         elseif ok and result.reason == "equipped" then
             equipped = true
         else
-            local okState, bagState, bagSoon = pcall(BG.BagState, BG, link, LOOKAHEAD_LEVELS)
+            local okState, bagState, bagSoon = pcall(BG.ArrowState, BG, link, LOOKAHEAD_LEVELS, target)
             if okState then
                 state, soonLevel = bagState, bagSoon
             end
@@ -125,7 +129,24 @@ local function QueueRetry()
     end)
 end
 
+-- A line above the recipe list naming whose upgrades the arrows show, while that is not you.
+local banner
+
+local function UpdateBanner()
+    if not banner then
+        return
+    end
+    local target = BetterGearingDB and BG:ArrowTarget()
+    if target then
+        banner:SetText("Arrows for " .. target.title)
+        banner:Show()
+    else
+        banner:Hide()
+    end
+end
+
 function Refresh()
+    UpdateBanner()
     if not (scrollBox and scrollBox:IsVisible() and scrollBox.ForEachFrame) then
         return
     end
@@ -150,6 +171,14 @@ local function Hook()
         return false
     end
     scrollBox = box
+    local list = page.RecipeList
+    banner = list:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    banner:SetPoint("BOTTOMLEFT", list.SearchBox or list, "TOPLEFT", list.SearchBox and -4 or 0, 3)
+    banner:SetTextColor(0.2, 1, 0.6)
+    banner:Hide()
+    if list.HookScript then
+        list:HookScript("OnShow", UpdateBanner)
+    end
     box:RegisterCallback(ScrollBoxListMixin.Event.OnInitializedFrame, function(_, row, node)
         local ok, ready = pcall(Decorate, row, node)
         if ok and not ready then

@@ -528,13 +528,15 @@ function BG:ListStats()
 end
 
 -- Points spent in a talent tab. GetTalentInfo's 5th return is the rank on Classic-style clients.
-local function TabPoints(tab)
+-- inspect = true reads the talents of the player being inspected (after INSPECT_READY).
+local function TabPoints(tab, inspect)
     if not GetNumTalents or not GetTalentInfo then
         return 0
     end
     local total = 0
-    for index = 1, (GetNumTalents(tab) or 0) do
-        local ok, _, _, _, _, rank = pcall(GetTalentInfo, tab, index)
+    local okCount, count = pcall(GetNumTalents, tab, inspect)
+    for index = 1, (okCount and tonumber(count) or 0) do
+        local ok, _, _, _, _, rank = pcall(GetTalentInfo, tab, index, inspect)
         rank = ok and tonumber(rank)
         if rank and rank > 0 and rank <= 10 then
             total = total + rank
@@ -542,7 +544,7 @@ local function TabPoints(tab)
     end
     if total == 0 and GetTalentTabInfo then
         -- Fallback: points spent is the 3rd return on Classic Era, the 5th on later clients.
-        local ok, _, _, third, _, fifth = pcall(GetTalentTabInfo, tab)
+        local ok, _, _, third, _, fifth = pcall(GetTalentTabInfo, tab, inspect)
         if ok then
             local points = (type(third) == "number" and third) or (type(fifth) == "number" and fifth) or 0
             if points > 0 and points <= 71 then
@@ -563,9 +565,19 @@ function BG:GetSpec()
     if forced then
         return forced, "forced"
     end
+    return self:SpecFromTalents(PlayerClass())
+end
+
+-- Spec of a class from the talent tab with the most points: yours, or with inspect = true the
+-- inspected player's. Returns specId, how ("talents" | "default"), or nil for an unsupported class.
+function BG:SpecFromTalents(classFile, inspect)
+    local classData = self.SPECS[classFile]
+    if not classData then
+        return nil, "unsupported class"
+    end
     local bestTab, bestPoints = nil, 0
     for tab = 1, #classData.tabs do
-        local points = TabPoints(tab)
+        local points = TabPoints(tab, inspect)
         if points > bestPoints then
             bestTab, bestPoints = tab, points
         end
